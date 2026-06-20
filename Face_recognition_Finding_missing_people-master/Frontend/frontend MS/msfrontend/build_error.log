@@ -1,0 +1,46 @@
+﻿
+> msfrontend@0.1.0 build
+> react-scripts build
+
+cmd : (node:13064) 
+[DEP0176] 
+DeprecationWarning: 
+fs.F_OK is deprecated, 
+use fs.constants.F_OK 
+instead
+At line:1 char:1
++ cmd /c npm run build 
+> temp_build2.log 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: ((node:13064)    
+ [D...ts.F_OK inste    
+ad:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+(Use `node 
+--trace-deprecation 
+...` to show where the 
+warning was created)
+Creating an optimized production build...
+Browserslist: 
+caniuse-lite is 
+outdated. Please run:
+  npx 
+browserslist@latest 
+--update-db
+  Why you should do it 
+regularly: https://gith
+ub.com/browserslist/bro
+wserslist#browsers-data
+-updating
+Failed to compile.
+
+Module not found: Error: Can't resolve 'axios' in 'C:\Users\jayau\Face_recognition_Finding_missing_people-master\Frontend\frontend MS\msfrontend\src\components\missing_form'
+
+
