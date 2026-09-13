@@ -1,0 +1,58 @@
+name: FaceTrace Microservices CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  lint-and-test:
+    name: Lint & Syntax Check Microservices
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Verify Node Microservices Syntax
+        run: |
+          node -c services/person-service/index.js
+          node -c services/location-service/index.js
+          node -c services/notification-service/index.js
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-python-version: '3.9'
+
+      - name: Verify Python Script Compilation
+        run: |
+          python -m py_compile face_recognition/apicall.py
+          python -m py_compile face_recognition/imagesapi.py
+          python -m py_compile face_recognition/main.py
+
+  docker-build:
+    name: Build & Validate Docker Containers
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Validate Docker Compose Configuration
+        run: |
+          docker compose config
+
+      - name: Build Microservices via Docker Compose
+        run: |
+          docker compose build --parallel

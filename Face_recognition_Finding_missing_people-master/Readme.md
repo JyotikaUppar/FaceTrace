@@ -72,34 +72,64 @@ A list of technologies used within the project:
 * MongoDB
 * React
 * Tailwind CSS
+* Nginx API Gateway
+* Docker & Docker Compose
 
-## Installation
+## Architecture & Installation
 ***
-A little intro about the installation. 
-```
-$ git clone https://github.com/garvitbatra02/Face_recognition_Finding_missing_people
 
-```
-In Node-js server MS
-```
-$ npm install
-$ node index.js
+### Microservices Architecture Overview
+1. **API Gateway (`/gateway`)**: Nginx reverse proxy serving on port 80 routing calls to internal microservices.
+2. **Person Registry Microservice (`/services/person-service`)**: Manages missing person metadata & image uploads (Port 5001).
+3. **Location Tracking Microservice (`/services/location-service`)**: Tracks sighting locations & geographic logs (Port 5002).
+4. **Notification Microservice (`/services/notification-service`)**: Asynchronous WhatsApp alert dispatcher (Port 5003).
+5. **AI Recognition Microservice (`/face_recognition`)**: Streamlit + OpenCV video ingestion & facial match service (Port 8501).
+6. **Frontend Web Dashboard (`/Frontend/frontend MS/msfrontend`)**: React interface (Port 3000).
 
-```
-In face_recognition 
-```
-$ pip install virtualenv
-$ virtualenv <my_env_name>
-$ source <my_env_name>/bin/activate
-$ pip install -r requirements.txt
-$ streamlit run main.py
+---
 
+### Option A: Run with Docker Compose (Recommended)
+Spin up the entire microservices mesh, databases, and gateway with a single command:
+```bash
+$ docker-compose up --build
 ```
-In Frontend/frontend MS/msfrontend 
-```
+Access the application at:
+- **Web Dashboard**: `http://localhost`
+- **API Gateway**: `http://localhost/api/...`
+- **AI Surveillance Streamlit App**: `http://localhost:8501`
+
+---
+
+### Option B: Manual Service Startup
+1. **Person Service**:
+```bash
+$ cd services/person-service
 $ npm install
 $ npm start
-
+```
+2. **Location Service**:
+```bash
+$ cd services/location-service
+$ npm install
+$ npm start
+```
+3. **Notification Service**:
+```bash
+$ cd services/notification-service
+$ npm install
+$ npm start
+```
+4. **Face Recognition AI Service**:
+```bash
+$ cd face_recognition
+$ pip install -r requirements.txt
+$ streamlit run main.py
+```
+5. **Frontend Application**:
+```bash
+$ cd "Frontend/frontend MS/msfrontend"
+$ npm install
+$ npm start
 ```
 
 

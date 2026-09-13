@@ -11,7 +11,7 @@
 
 const mongoose = require('mongoose');
 
-const mongoURI = "mongodb+srv://vbhandary129_db_user:NhgPxXj85Z2h4LYN@cluster0.ubzsqwd.mongodb.net/?appName=Cluster0";
+const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/Face_Recognition";
 
 const connectToMongo = async () => {
     try {
