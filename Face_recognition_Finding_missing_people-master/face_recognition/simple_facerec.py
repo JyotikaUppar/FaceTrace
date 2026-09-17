@@ -26,13 +26,22 @@ class SimpleFacerec:
         # Store image encoding and names
         for img_path in images_path:
             img = cv2.imread(img_path)
+            if img is None:
+                print("Warning: Could not read image at {}, skipping.".format(img_path))
+                continue
+
             rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
             # Get the filename only from the initial file path.
             basename = os.path.basename(img_path)
             (filename, ext) = os.path.splitext(basename)
             # Get encoding
-            img_encoding = face_recognition.face_encodings(rgb_img)[0]
+            encodings = face_recognition.face_encodings(rgb_img)
+            if len(encodings) == 0:
+                print("Warning: No face found in {}, skipping.".format(img_path))
+                continue
+
+            img_encoding = encodings[0]
 
             # Store file name and file encoding
             self.known_face_encodings.append(img_encoding)
@@ -48,24 +57,30 @@ class SimpleFacerec:
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
         face_names = []
+        confidences = []
         for face_encoding in face_encodings:
             # See if the face is a match for the known face(s)
             matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
             name = "Unknown"
+            confidence = 0.0
 
-            # # If a match was found in known_face_encodings, just use the first one.
-            # if True in matches:
-            #     first_match_index = matches.index(True)
-            #     name = known_face_names[first_match_index]
+            # Use the known face with the smallest distance to the new face
+            if len(self.known_face_encodings) > 0:
+                face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
+                best_match_index = np.argmin(face_distances)
+                best_distance = face_distances[best_match_index]
 
-            # Or instead, use the known face with the smallest distance to the new face
-            face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
-            best_match_index = np.argmin(face_distances)
-            if matches[best_match_index]:
-                name = self.known_face_names[best_match_index]
+                if matches[best_match_index]:
+                    name = self.known_face_names[best_match_index]
+                    # Map facial distance to percentage match confidence
+                    confidence = round(max(0.0, min(100.0, (1.0 - best_distance) * 100.0)), 1)
+
             face_names.append(name)
+            confidences.append(confidence)
 
         # Convert to numpy array to adjust coordinates with frame resizing quickly
         face_locations = np.array(face_locations)
-        face_locations = face_locations / self.frame_resizing
-        return face_locations.astype(int), face_names
+        if len(face_locations) > 0:
+            face_locations = face_locations / self.frame_resizing
+            return face_locations.astype(int), face_names, confidences
+        return [], face_names, confidences
