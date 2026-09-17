@@ -30,13 +30,13 @@ jobs:
       - name: Install & Run Person Service Unit Tests
         run: |
           cd services/person-service
-          npm ci
+          npm ci || npm install
           npm test
 
       - name: Install & Run Location Service Unit Tests
         run: |
           cd services/location-service
-          npm ci
+          npm ci || npm install
           npm test
 
       - name: Setup Python (v3.9)
@@ -99,7 +99,7 @@ jobs:
         run: |
           BUILD_TAG="v1.0.0-${GITHUB_SHA:0:7}"
           echo "Building microservice artifacts tagged as $BUILD_TAG"
-          docker compose build --parallel
+          docker compose build person-service location-service notification-service
 
   # -------------------------------------------------------------
   # STAGE 4: Blue-Green Deployment & Verification
