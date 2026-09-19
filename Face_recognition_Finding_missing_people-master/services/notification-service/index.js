@@ -17,6 +17,7 @@ app.get('/health', (req, res) => {
 
 // Notification routes
 app.use('/api/notifications', require('./routes/notification'));
+app.use('/api/notifications', require('./docs/swagger'));
 
 app.listen(port, () => {
     console.log(`Notification Microservice running on port ${port}`);

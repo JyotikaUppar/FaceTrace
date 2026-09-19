@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: facetrace
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: facetrace-config
+  namespace: facetrace
+data:
+  PORT_PERSON: "5001"
+  PORT_LOCATION: "5002"
+  PORT_NOTIFICATION: "5003"
+  GATEWAY_URL: "http://facetrace-gateway-service.facetrace.svc.cluster.local"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: facetrace-secrets
+  namespace: facetrace
+type: Opaque
+stringData:
+  MONGO_PERSON_URI: "mongodb://mongo-person-service:27017/facetrace_person"
+  MONGO_LOCATION_URI: "mongodb://mongo-location-service:27017/facetrace_location"
+  ULTRAMSG_INSTANCE: "instance7517"
+  ULTRAMSG_TOKEN: "uf5xnwpeveeinoh9"

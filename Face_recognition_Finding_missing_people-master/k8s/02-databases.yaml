@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo-person
+  namespace: facetrace
+spec:
+  serviceName: mongo-person-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-person
+  template:
+    metadata:
+      labels:
+        app: mongo-person
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:6.0
+          ports:
+            - containerPort: 27017
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-person-service
+  namespace: facetrace
+spec:
+  ports:
+    - port: 27017
+      targetPort: 27017
+  selector:
+    app: mongo-person
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo-location
+  namespace: facetrace
+spec:
+  serviceName: mongo-location-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-location
+  template:
+    metadata:
+      labels:
+        app: mongo-location
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:6.0
+          ports:
+            - containerPort: 27017
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-location-service
+  namespace: facetrace
+spec:
+  ports:
+    - port: 27017
+      targetPort: 27017
+  selector:
+    app: mongo-location

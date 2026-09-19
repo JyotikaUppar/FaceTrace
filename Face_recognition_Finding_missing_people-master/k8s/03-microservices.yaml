@@ -1,0 +1,239 @@
+# -------------------------------------------------------------
+# Person Registry Microservice
+# -------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: person-service
+  namespace: facetrace
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: person-service
+  template:
+    metadata:
+      labels:
+        app: person-service
+    spec:
+      containers:
+        - name: person-service
+          image: docker.io/facetrace/person-service:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5001
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: facetrace-config
+                  key: PORT_PERSON
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: facetrace-secrets
+                  key: MONGO_PERSON_URI
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: person-service
+  namespace: facetrace
+spec:
+  ports:
+    - port: 5001
+      targetPort: 5001
+  selector:
+    app: person-service
+---
+# -------------------------------------------------------------
+# Location Tracking Microservice
+# -------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: location-service
+  namespace: facetrace
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: location-service
+  template:
+    metadata:
+      labels:
+        app: location-service
+    spec:
+      containers:
+        - name: location-service
+          image: docker.io/facetrace/location-service:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5002
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: facetrace-config
+                  key: PORT_LOCATION
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: facetrace-secrets
+                  key: MONGO_LOCATION_URI
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5002
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: location-service
+  namespace: facetrace
+spec:
+  ports:
+    - port: 5002
+      targetPort: 5002
+  selector:
+    app: location-service
+---
+# -------------------------------------------------------------
+# Notification Microservice
+# -------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: facetrace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: docker.io/facetrace/notification-service:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5003
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: facetrace-config
+                  key: PORT_NOTIFICATION
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5003
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: facetrace
+spec:
+  ports:
+    - port: 5003
+      targetPort: 5003
+  selector:
+    app: notification-service
+---
+# -------------------------------------------------------------
+# AI Face Recognition Service
+# -------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-recognition-service
+  namespace: facetrace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-recognition-service
+  template:
+    metadata:
+      labels:
+        app: ai-recognition-service
+    spec:
+      containers:
+        - name: ai-recognition-service
+          image: docker.io/facetrace/ai-recognition:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8501
+          env:
+            - name: GATEWAY_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: facetrace-config
+                  key: GATEWAY_URL
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2048Mi"
+              cpu: "1500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-recognition-service
+  namespace: facetrace
+spec:
+  ports:
+    - port: 8501
+      targetPort: 8501
+  selector:
+    app: ai-recognition-service

@@ -20,6 +20,7 @@ app.get('/health', (req, res) => {
 
 // Location routes
 app.use('/api/foundlocation', require('./routes/location'));
+app.use('/api/foundlocation', require('./docs/swagger'));
 
 app.listen(port, () => {
     console.log(`Location Microservice running on port ${port}`);

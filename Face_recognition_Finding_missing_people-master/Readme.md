@@ -1,171 +1,140 @@
+# FaceTrace - Missing Person Surveillance Microservices
 
-## Table of Contents
-1. [General Info](#general-info)
-2. [Live Demo](#live-demo)
-3. [Technologies](#technologies)
-4. [Installation](#installation)
-5. [Features](#features)
-### General Info
-***
-This web app is an online portal that enables users to register their close ones which are missing and provides interface to see their movement activities that has been tracked through our face recognition surveillance. It shows all the missing people with their images which has been reported by the stakeholder.  Agile Methodology was used for building this project. The best Agile practices adopted were :
-
-* Proper Planning
-* Keeping Product Backlog
-* Maintaining a SPRINT Burndown and a Product Burndown.
-* Adopting the concepts of relative estimation and velocity.
-
-
-
-## Live Demo 
-***
-
-
-* Documentation Link: https://drive.google.com/file/d/1BU0SRQpA34_FoaBTm4EeScGzy8bp9Bzk/view?usp=sharing
-* Demo Video: https://youtu.be/DLSFxclC47w
-
-## 
-
-
-### Screenshots
-* Home Page
-
-![Screenshot](./screenshots/Capture1.PNG)
-
-* Add missing person
-
-![Screenshot](./screenshots/Capture2.PNG) 
-
-* Missing people list
-
-![Screenshot](./screenshots/Capture3.PNG)
-
-* Tracked locations of missing people and search option
-
-![Screenshot](./screenshots/Capture4.PNG)
-
-* Initial UI for Survillence area
-
-![Screenshot](./screenshots/Capture5.PNG)
-
-* Further process Mode to show further process how to take actions
-
-![Screenshot](./screenshots/Capture6.PNG)
-
-* Working screenshots while detecting face
-
-![Screenshot](./screenshots/Capture7.PNG)
-
-![Screenshot](./screenshots/Capture8.PNG)
-
-* Whatsapp message recieved simulataneously after locations have been tracked
-
-![Screenshot](./screenshots/capture9.jpeg)
-
-## Technologies
-***
-A list of technologies used within the project:
-* Face recognition
-* Whatsapp API
-* Node.js
-* Express
-* Open CV
-* MongoDB
-* React
-* Tailwind CSS
-* Nginx API Gateway
-* Docker & Docker Compose
-
-## Architecture & Installation
-***
-
-### Microservices Architecture Overview
-1. **API Gateway (`/gateway`)**: Nginx reverse proxy serving on port 80 routing calls to internal microservices.
-2. **Person Registry Microservice (`/services/person-service`)**: Manages missing person metadata & image uploads (Port 5001).
-3. **Location Tracking Microservice (`/services/location-service`)**: Tracks sighting locations & geographic logs (Port 5002).
-4. **Notification Microservice (`/services/notification-service`)**: Asynchronous WhatsApp alert dispatcher (Port 5003).
-5. **AI Recognition Microservice (`/face_recognition`)**: Streamlit + OpenCV video ingestion & facial match service (Port 8501).
-6. **Frontend Web Dashboard (`/Frontend/frontend MS/msfrontend`)**: React interface (Port 3000).
+FaceTrace is an AI-powered surveillance and missing person tracking system built using a production-grade **Microservices Architecture**, **Docker containerization**, **Kubernetes orchestration**, and an automated **GitHub Actions CI/CD pipeline**.
 
 ---
 
-### Option A: Run with Docker Compose (Recommended)
-Spin up the entire microservices mesh, databases, and gateway with a single command:
-```bash
-$ docker-compose up --build
+## 🏗️ Architecture Overview
+
+```mermaid
+flowchart TD
+    Client[React Web Dashboard] --> Gateway[Nginx API Gateway / Port 80]
+    AI[Python AI Vision Engine] --> Gateway
+
+    Gateway -->|/api/missingpeople| PersonService[Person Registry Microservice - Port 5001]
+    Gateway -->|/api/foundlocation| LocationService[Location Tracking Microservice - Port 5002]
+    Gateway -->|/api/notifications| NotificationService[Notification Microservice - Port 5003]
+
+    PersonService --> PersonDB[(Person MongoDB)]
+    LocationService --> LocationDB[(Location MongoDB)]
 ```
-Access the application at:
-- **Web Dashboard**: `http://localhost`
-- **API Gateway**: `http://localhost/api/...`
-- **AI Surveillance Streamlit App**: `http://localhost:8501`
+
+### Microservices Breakdown
+1. **API Gateway (`/gateway`)**: Nginx reverse proxy serving on port 80 routing traffic to internal services.
+2. **Person Registry Microservice (`/services/person-service`)**: Node.js/Express service for profile CRUD, Aadhaar identification, and image upload management.
+3. **Location Tracking Microservice (`/services/location-service`)**: Node.js/Express service for tracking camera sightings, coordinates, and timestamps.
+4. **Notification Microservice (`/services/notification-service`)**: Node.js service for dispatching automated WhatsApp/Twilio alerts.
+5. **AI Vision Recognition Service (`/face_recognition`)**: Streamlit + OpenCV Python service for real-time video feed ingestion and face matching.
+6. **Frontend Dashboard (`/Frontend/frontend MS/msfrontend`)**: React application for web dashboard management.
 
 ---
 
-### Option B: Manual Service Startup
-1. **Person Service**:
+## ⚠️ Errors Faced During Development & Setup (Troubleshooting Guide)
+
+Below is a summary of technical errors encountered during the refactoring process and how each was resolved:
+
+### 1. OpenCV & dlib Native Compilation Failures in Docker
+- **Problem**: Python container build failed during `pip install -r requirements.txt` due to missing C++ compilation headers for `dlib` and OpenCV.
+- **Root Cause**: `dlib` requires CMake and C++ build tools which are missing in minimal Python base images.
+- **Resolution**: Updated `face_recognition/Dockerfile` to install native dependencies (`build-essential`, `cmake`, `libgl1-mesa-glx`, `libglib2.0-0`) before installing Python packages.
+
+### 2. GitHub Actions Working Directory Path Mismatches
+- **Problem**: CI/CD pipeline failed with `No such file or directory` when attempting `cd Face_recognition_Finding_missing_people-master`.
+- **Root Cause**: `actions/checkout@v4` checks out files directly into the repository root `$GITHUB_WORKSPACE`.
+- **Resolution**: Configured `.github/workflows/ci-cd.yml` steps to execute relative to repository root `.`.
+
+### 3. MongoDB Connection Race Condition on Container Startup
+- **Problem**: Node.js microservices crashed on startup because MongoDB container was still initializing database sockets.
+- **Root Cause**: Container startup order in Docker Compose did not wait for MongoDB health check readiness.
+- **Resolution**: Added `mongosh` healthchecks (`db.adminCommand('ping')`) in `docker-compose.yml` and configured `depends_on: { condition: service_healthy }` alongside Kubernetes readiness probes.
+
+### 4. Hardcoded `localhost` URLs in Containerized Environments
+- **Problem**: Python AI service and React frontend failed to reach backend services inside Docker/Kubernetes container networks.
+- **Root Cause**: `http://localhost:5000` points to container local loopback instead of service network hostnames.
+- **Resolution**: Refactored code to consume environment variable `GATEWAY_URL` (`http://gateway:80` for Docker Compose, `http://facetrace-gateway-service...` for Kubernetes).
+
+### 5. CORS Policy Violations
+- **Problem**: Frontend browser requests were blocked due to Cross-Origin Resource Sharing restrictions.
+- **Resolution**: Enabled `cors()` middleware on all Express microservices and configured proxy headers (`proxy_set_header Host $host`, `proxy_set_header X-Real-IP $remote_addr`) in Nginx API Gateway.
+
+---
+
+## 🚀 How to Run the Project
+
+### Option A: Local Development with Docker Compose (Recommended)
+Run the entire microservices mesh, MongoDB databases, and API Gateway with a single command:
+
 ```bash
-$ cd services/person-service
-$ npm install
-$ npm start
+# Build and start all microservice containers
+docker compose up --build
 ```
-2. **Location Service**:
+
+**Access Endpoints:**
+- **Web Dashboard**: [http://localhost](http://localhost)
+- **API Gateway Health**: [http://localhost/health](http://localhost/health)
+- **AI Surveillance App**: [http://localhost:8501](http://localhost:8501)
+
+To stop services:
 ```bash
-$ cd services/location-service
-$ npm install
-$ npm start
+docker compose down
 ```
-3. **Notification Service**:
+
+---
+
+### Option B: Deploying to Kubernetes (k8s)
+Deploy microservices, databases, ConfigMaps, and Ingress routing to a local cluster (Minikube / Docker Desktop / K3s):
+
 ```bash
-$ cd services/notification-service
-$ npm install
-$ npm start
+# 1. Apply Namespace, ConfigMaps, and Secrets
+kubectl apply -f k8s/01-namespace-config.yaml
+
+# 2. Deploy MongoDB StatefulSets
+kubectl apply -f k8s/02-databases.yaml
+
+# 3. Deploy Microservices
+kubectl apply -f k8s/03-microservices.yaml
+
+# 4. Deploy Ingress Gateway
+kubectl apply -f k8s/04-ingress-gateway.yaml
 ```
-4. **Face Recognition AI Service**:
+
+**Verify Deployment:**
 ```bash
-$ cd face_recognition
-$ pip install -r requirements.txt
-$ streamlit run main.py
+kubectl get pods -n facetrace
+kubectl get services -n facetrace
 ```
-5. **Frontend Application**:
+
+---
+
+### Option C: Running Automated CI/CD Pipeline (GitHub Actions)
+The repository includes an automated GitHub Actions pipeline located at `.github/workflows/ci-cd.yml`.
+
+**Pipeline Stages:**
+1. **Automated Unit Testing**: Runs Node.js (`node --test`) and Python (`unittest`) tests.
+2. **Docker Build Validation**: Validates `docker compose config` and builds container images.
+3. **Kubernetes Validation**: Performs dry-run validation (`kubectl apply --dry-run=client`) on all `k8s/*.yaml` manifests.
+
+To trigger the pipeline:
 ```bash
-$ cd "Frontend/frontend MS/msfrontend"
-$ npm install
-$ npm start
+git add .
+git commit -m "Deploy microservices CI/CD update"
+git push origin main
 ```
 
+---
 
-## Features
-***
-FindOne features:
-* Interactive UI to show missing people
-* Real Time environment analysis to detect faces
-* Quick and fast Node js backend to support quick response of user detection to database
-* Less image degradation due to base64 transfer of image
-* Easy to operate missing people data
-* Show Time Stamp when a person detacted
-* Show accurate location of the person with longitude and latitude pointers
-* Pop up Notification of Whatsapp to registered stakeholder mobile number within microseonds
+### Option D: Running Unit Tests Locally
 
-* Search all locations of particular person by adhaar card
-## 
+```bash
+# Test Person Microservice
+cd services/person-service
+node --test test/person.test.js
 
+# Test Location Microservice
+cd ../location-service
+node --test test/location.test.js
 
-
-## Mordern World Applications
-
-
-* How many people go missing each year?  
-
-    Missing people: of the 170,000 people reported missing nearly 98,000 are adults and more than 70,000 are children  
-    Missing incidents: of the 353,000 reported incidents, more than 137,000 incidents are adults and almost 215,000 incidents are children  
-    Looked after children are at high risk of being reported missing. 1 in 10 looked after children are reported missing compared to 1 in 200 children. Looked after children who are reported missing will be reported on average 6 times  
-
-* The number of cases shown above is quite large thus resolving each case is practically impossible by human.
-* Hence morden technology of face recognition used here can be used to detect missing people and computer vision makes it easy than human effort.
-* Here high accuracy of computer vision and machine learning algorithms has more accuracy than any human memory and eyes.
-* This system can be easily installed in CCTV cameras and 24/7 surveillance can be carried out
-* Further more integerations can be done like multiple models like a person has a particular marks on body due to disease which could also be recognized easiely.
-* This model can also be extended or modified to catch criminals .
-* It can also be installed in wildlife regions for detecting rare animal species and extinct ones since it is not safe for human to remain everywhere to capture them.
-* It can also be used by companies to detect hoarding overlayed in cities to determine density of advertisement.
-
-## 
+# Test AI Recognition Service
+cd ../face_recognition
+python -m unittest test_apicall.py
+```

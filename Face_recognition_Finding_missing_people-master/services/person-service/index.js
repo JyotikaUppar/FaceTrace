@@ -20,6 +20,7 @@ app.get('/health', (req, res) => {
 
 // Person routes
 app.use('/api/missingpeople', require('./routes/missing'));
+app.use('/api/missingpeople', require('./docs/swagger'));
 
 app.listen(port, () => {
     console.log(`Person Microservice running on port ${port}`);

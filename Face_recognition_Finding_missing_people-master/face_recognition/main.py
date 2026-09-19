@@ -109,19 +109,31 @@ else:
         ret,frame=cap.read()
 
         # detect faces
-        face_locations,face_names=sfr.detect_known_faces(frame)
-        for face_loc,name in zip(face_locations,face_names):
-            y1,x2,y2,x1=face_loc[0],face_loc[1],face_loc[2],face_loc[3]
-            if(name!="Unknown"):
-                flag=name in namesset
+        face_locations, face_names, confidences = sfr.detect_known_faces(frame)
+        for face_loc, name, conf in zip(face_locations, face_names, confidences):
+            y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
+            if (name != "Unknown"):
+                flag = name in namesset
                 namesset.add(name)
-                if(flag==False):
+                if (flag == False):
                     add_in_base(name)
                     print(name)
 
+            # Determine Heatmap Bounding Box Color and Label
+            if name != "Unknown" and conf >= 75.0:
+                color = (0, 255, 0)    # High Match -> Bright Green (BGR)
+                label = f"{name} ({conf}% Match)"
+            elif name != "Unknown":
+                color = (0, 255, 255)  # Moderate / Uncertain Match -> Yellow (BGR)
+                label = f"{name} ({conf}% Match)"
+            else:
+                color = (0, 0, 255)    # Unknown Face -> Red (BGR)
+                label = "Unknown"
 
-            cv2.putText(frame,name,(x1,y1-10),cv2.FONT_HERSHEY_DUPLEX,1,(0,0,200),2)
-            cv2.rectangle(frame,(x1,y1),(x2,y2),(0,0,200),4)
+            # Header background card
+            cv2.rectangle(frame, (x1, y1 - 35), (x2, y1), color, cv2.FILLED)
+            cv2.putText(frame, label, (x1 + 6, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 0.65, (0, 0, 0), 2)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3)
 
 
         cv2.imshow("Frame",frame)

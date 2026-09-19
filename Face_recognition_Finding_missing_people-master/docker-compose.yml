@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # -------------------------------------------------------------
   # Infrastructure Services
@@ -7,28 +5,43 @@ services:
   mongo-person:
     image: mongo:6.0
     container_name: facetrace-mongo-person
-    restart: always
+    restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
       - mongo_person_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mongo-location:
     image: mongo:6.0
     container_name: facetrace-mongo-location
-    restart: always
+    restart: unless-stopped
     ports:
       - "27018:27017"
     volumes:
       - mongo_location_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: facetrace-rabbitmq
-    restart: always
+    restart: unless-stopped
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # -------------------------------------------------------------
   # Application Microservices
@@ -38,61 +51,83 @@ services:
       context: ./services/person-service
       dockerfile: Dockerfile
     container_name: facetrace-person-service
-    restart: always
+    restart: unless-stopped
     ports:
       - "5001:5001"
     environment:
       - PORT=5001
       - MONGO_URI=mongodb://mongo-person:27017/facetrace_person
     depends_on:
-      - mongo-person
+      mongo-person:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   location-service:
     build:
       context: ./services/location-service
       dockerfile: Dockerfile
     container_name: facetrace-location-service
-    restart: always
+    restart: unless-stopped
     ports:
       - "5002:5002"
     environment:
       - PORT=5002
       - MONGO_URI=mongodb://mongo-location:27017/facetrace_location
     depends_on:
-      - mongo-location
+      mongo-location:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   notification-service:
     build:
       context: ./services/notification-service
       dockerfile: Dockerfile
     container_name: facetrace-notification-service
-    restart: always
+    restart: unless-stopped
     ports:
       - "5003:5003"
     environment:
       - PORT=5003
       - ULTRAMSG_INSTANCE=${ULTRAMSG_INSTANCE:-instance7517}
       - ULTRAMSG_TOKEN=${ULTRAMSG_TOKEN:-uf5xnwpeveeinoh9}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
 
   face-recognition-service:
     build:
       context: ./face_recognition
       dockerfile: Dockerfile
     container_name: facetrace-ai-recognition
-    restart: always
+    restart: unless-stopped
     ports:
       - "8501:8501"
     environment:
       - GATEWAY_URL=http://gateway:80
     depends_on:
       - gateway
+    deploy:
+      resources:
+        limits:
+          cpus: '1.50'
+          memory: 2048M
 
   frontend:
     build:
       context: ./Frontend/frontend MS/msfrontend
       dockerfile: Dockerfile
     container_name: facetrace-frontend
-    restart: always
+    restart: unless-stopped
     ports:
       - "3000:3000"
 
@@ -104,7 +139,7 @@ services:
       context: ./gateway
       dockerfile: Dockerfile
     container_name: facetrace-api-gateway
-    restart: always
+    restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
