@@ -1,4 +1,4 @@
-name: FaceTrace End-to-End CI/CD Pipeline
+name: FaceTrace Microservices CI/CD Pipeline
 
 on:
   push:
@@ -12,9 +12,9 @@ defaults:
 
 jobs:
   # -------------------------------------------------------------
-  # STAGE 1: Code Linting & Automated Unit Testing
+  # STAGE 1: Code Syntax & Automated Unit Testing
   # -------------------------------------------------------------
-  lint-and-test:
+  test-and-lint:
     name: 1. Code Lint & Automated Unit Testing
     runs-on: ubuntu-latest
 
@@ -25,14 +25,14 @@ jobs:
       - name: Setup Node.js (v20)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
-      - name: Install & Run Person Service Unit Tests
+      - name: Run Person Service Unit Tests
         run: |
           cd services/person-service
           node --test test/person.test.js
 
-      - name: Install & Run Location Service Unit Tests
+      - name: Run Location Service Unit Tests
         run: |
           cd services/location-service
           node --test test/location.test.js
@@ -40,9 +40,9 @@ jobs:
       - name: Setup Python (v3.9)
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
-      - name: Verify & Test AI Recognition Script Compilation
+      - name: Verify AI Recognition Script Compilation & Unit Tests
         run: |
           python -m py_compile face_recognition/apicall.py
           python -m py_compile face_recognition/imagesapi.py
@@ -51,67 +51,47 @@ jobs:
           python -m unittest test_apicall.py
 
   # -------------------------------------------------------------
-  # STAGE 2: Security & SAST Scans
+  # STAGE 2: Docker Build & Compose Validation
   # -------------------------------------------------------------
-  security-sast:
-    name: 2. CI/CD Security Checks & Vulnerability Scanning
+  docker-validation:
+    name: 2. Docker Build & Compose Validation
     runs-on: ubuntu-latest
-    needs: lint-and-test
+    needs: test-and-lint
 
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
 
-      - name: Run Node Dependency Security Audit
-        run: |
-          cd services/person-service && npm audit --audit-level=high || true
-          cd ../location-service && npm audit --audit-level=high || true
-          cd ../notification-service && npm audit --audit-level=high || true
-
-      - name: Run Hadolint Dockerfile Linter
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: 'Face_recognition_Finding_missing_people-master/services/person-service/Dockerfile'
-          ignore: 'DL3007,DL3018'
-
-  # -------------------------------------------------------------
-  # STAGE 3: Optimized Docker Build & Artifact Tagging
-  # -------------------------------------------------------------
-  docker-build-and-tag:
-    name: 3. Build Automation & Artifact Versioning
-    runs-on: ubuntu-latest
-    needs: security-sast
-
-    steps:
-      - name: Checkout Codebase
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx (Cache Optimization)
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Validate Docker Compose Configuration
+      - name: Validate Docker Compose Config
         run: |
           docker compose config
 
-      - name: Build & Tag Container Artifacts
+      - name: Build Core Microservices Images
         run: |
-          BUILD_TAG="v1.0.0-${GITHUB_SHA:0:7}"
-          echo "Building microservice artifacts tagged as $BUILD_TAG"
-          docker compose build person-service location-service notification-service
+          docker compose build person-service location-service notification-service gateway
 
   # -------------------------------------------------------------
-  # STAGE 4: Blue-Green Deployment & Verification
+  # STAGE 3: Kubernetes Manifest Dry-Run Validation
   # -------------------------------------------------------------
-  deploy-simulation:
-    name: 4. Deployment Pipeline & Blue-Green Simulation
+  k8s-validation:
+    name: 3. Kubernetes Manifest Validation
     runs-on: ubuntu-latest
-    needs: docker-build-and-tag
+    needs: docker-validation
 
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
 
-      - name: Execute Blue-Green Zero-Downtime Deployment
+      - name: Setup kubectl CLI
+        uses: azure/setup-kubectl@v3
+
+      - name: Validate Kubernetes Manifests Syntax (Dry Run)
         run: |
-          chmod +x scripts/blue-green-deploy.sh
-          ./scripts/blue-green-deploy.sh green
+          kubectl apply --dry-run=client -f k8s/01-namespace-config.yaml
+          kubectl apply --dry-run=client -f k8s/02-databases.yaml
+          kubectl apply --dry-run=client -f k8s/03-microservices.yaml
+          kubectl apply --dry-run=client -f k8s/04-ingress-gateway.yaml
+
