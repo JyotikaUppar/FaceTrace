@@ -2,6 +2,8 @@
 
 FaceTrace is an AI-powered surveillance and missing person tracking system built using a production-grade **Microservices Architecture**, **Docker containerization**, **Kubernetes orchestration**, and an automated **GitHub Actions CI/CD pipeline**.
 
+> 🎓 **Teacher Presentation Guide**: Want a step-by-step guide on how to explain Docker & Kubernetes to your professor/teacher? Read [`TEACHER_EXPLANATION_GUIDE.md`](file:///c:/Users/jayau/FaceTrace/Face_recognition_Finding_missing_people-master/TEACHER_EXPLANATION_GUIDE.md).
+
 ---
 
 ## 🏗️ Architecture Overview
